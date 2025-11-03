@@ -33,7 +33,10 @@ class VenueController extends Controller
                 'amenities',
                 'sort',
                 'sort_order',
-                'per_page'
+                'per_page',
+                'location',
+                'price_min',
+                'price_max',
             ]);
 
             $venues = $this->venueService->getVenues($filters);

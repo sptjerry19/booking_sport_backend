@@ -1,6 +1,36 @@
 version: "3.8"
 
 services:
+    # Laravel Application
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: booking_sport_app
+        restart: unless-stopped
+        ports:
+            - "8000:80"
+        volumes:
+            - .:/var/www/html
+            - ./storage:/var/www/html/storage
+        environment:
+            - APP_ENV=local
+            - APP_DEBUG=true
+            - DB_HOST=mysql
+            - DB_DATABASE=booking_sport
+            - DB_USERNAME=booking_sport
+            - DB_PASSWORD=password
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - QUEUE_CONNECTION=redis
+            - CACHE_DRIVER=redis
+            - SESSION_DRIVER=redis
+        depends_on:
+            - mysql
+            - redis
+        networks:
+            - booking_sport_network
+
     # MySQL Database
     mysql:
         image: mysql:8.0
@@ -20,7 +50,9 @@ services:
 
     # Redis for caching and queues
     redis:
-        image: redis:7-alpine
+        build:
+            context: .
+            dockerfile: docker/redis/Dockerfile
         container_name: booking_sport_redis
         restart: unless-stopped
         ports:

@@ -50,6 +50,24 @@ class VenueService
             }
         }
 
+        // Filter by price range (based on courts' hourly_rate)
+        if (isset($filters['price_min']) || isset($filters['price_max'])) {
+            $query->whereHas('courts', function ($q) use ($filters) {
+                if (isset($filters['price_min'])) {
+                    $q->where('hourly_rate', '>=', $filters['price_min']);
+                }
+                if (isset($filters['price_max'])) {
+                    $q->where('hourly_rate', '<=', $filters['price_max']);
+                }
+            });
+        }
+
+        // Filter by location keyword
+        if (isset($filters['location'])) {
+            $location = $filters['location'];
+            $query->where('address', 'like', "%{$location}%");
+        }
+
         // Sort options
         $sortBy = $filters['sort'] ?? 'distance';
         $sortOrder = $filters['sort_order'] ?? 'asc';
