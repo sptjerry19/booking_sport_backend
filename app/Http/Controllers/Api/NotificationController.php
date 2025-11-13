@@ -3,21 +3,31 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Notification\StoreNotificationRequest;
+use App\Http\Requests\Notification\UpdateNotificationRequest;
+use App\Http\Resources\NoticeResource;
+use App\Http\Responses\ApiResponse;
 use App\Models\DeviceToken;
 use App\Models\Notification;
 use App\Services\FCMService;
+use App\Services\NoticeService;
+use Beste\Json;
+use GPBMetadata\Google\Protobuf\Api;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class NotificationController extends Controller
 {
     protected FCMService $fcmService;
+    protected NoticeService $noticeService;
 
-    public function __construct(FCMService $fcmService)
+    public function __construct(FCMService $fcmService, NoticeService $noticeService)
     {
         $this->fcmService = $fcmService;
+        $this->noticeService = $noticeService;
     }
 
     /**
@@ -484,6 +494,83 @@ class NotificationController extends Controller
                 'message' => 'Failed to get device tokens',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+
+    public function adminGetAllNotifications(): JsonResponse
+    {
+        try {
+            $notifications = $this->noticeService->adminGetAllNotifications();
+
+            return ApiResponse::paginated(NoticeResource::collection($notifications), __('notifications.getAllDataSuccess'));
+        } catch (\Exception $e) {
+            Log::error('get data notice fail', $e->getMessage());
+            return ApiResponse::error(__('notifications.getAllDataFail'));
+        }
+    }
+
+    public function adminGetNotificationById(int $id): JsonResponse
+    {
+        try {
+            $notification = $this->noticeService->getNotificationById($id);
+            if (!$notification) {
+                return ApiResponse::notFound('Notification not found');
+            }
+
+            return ApiResponse::success(new NoticeResource($notification), 'Get notification detail success');
+        } catch (\Exception $e) {
+            Log::error('get notice detail fail', $e->getMessage());
+            return ApiResponse::error('Get notification detail fail');
+        }
+    }
+
+    public function adminCreateNotification(StoreNotificationRequest $request): JsonResponse
+    {
+        $params = $request->validated();
+
+        try {
+            $notification = $this->noticeService->createNotification($params);
+            if (!$notification) {
+                return ApiResponse::error('Failed to create notification');
+            }
+
+            return ApiResponse::created(new NoticeResource($notification), __('notifications.created', ['title' => $notification->title]));
+        } catch (\Exception $e) {
+            Log::error('create notice fail', $e->getMessage());
+            return ApiResponse::error('Failed to create notification');
+        }
+    }
+
+    public function adminUpdateNotification(int $id, UpdateNotificationRequest $request): JsonResponse
+    {
+        $params = $request->validated();
+
+        try {
+            $notification = $this->noticeService->updateNotification($id, $params);
+            if (!$notification) {
+                return ApiResponse::notFound('Notification not found or failed to update');
+            }
+
+            return ApiResponse::updated(new NoticeResource($notification), 'Notification updated successfully');
+        } catch (\Exception $e) {
+            Log::error('update notice fail', $e->getMessage());
+            return ApiResponse::error('Failed to update notification');
+        }
+    }
+
+    public function adminDeleteNotification(int $id): JsonResponse
+    {
+        try {
+            $notification = $this->noticeService->deleteNotification($id);
+            if (!$notification) {
+                return ApiResponse::notFound('Notification not found');
+            }
+
+            return ApiResponse::deleted('Notification deleted successfully');
+        } catch (\Exception $e) {
+            Log::error('delete notice fail', $e->getMessage());
+            return ApiResponse::error('Failed to delete notification');
         }
     }
 }

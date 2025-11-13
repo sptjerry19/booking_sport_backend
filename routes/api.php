@@ -133,3 +133,29 @@ Route::prefix('v1')->group(function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+
+// API for admin panel (separate from main API)
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:sanctum', 'role:admin||owner']], function () {
+    Route::group(['prefix' => 'users', 'middleware' => ['role:admin']], function () {
+        Route::get('/', [AuthController::class, 'adminGetAllUsers']);
+        Route::post('/', [AuthController::class, 'adminCreateUser']);
+        Route::put('/{id}', [AuthController::class, 'adminUpdateUser']);
+        Route::delete('/{id}', [AuthController::class, 'adminDeleteUser']);
+    });
+    Route::group(['prefix' => 'sports'], function () {
+        Route::get('/', [SportController::class, 'adminGetAllSports']);
+        Route::post('/', [SportController::class, 'adminCreateSport']);
+        Route::put('/{id}', [SportController::class, 'adminUpdateSport']);
+        Route::delete('/{id}', [SportController::class, 'adminDeleteSport']);
+        Route::patch('/{sport}/toggle-status', [SportController::class, 'toggleStatus']);
+    });
+
+    Route::group(['prefix' => 'notifications'], function () {
+        Route::get('/', [NotificationController::class, 'adminGetAllNotifications']);
+        Route::get('/{id}', [NotificationController::class, 'adminGetNotificationById']);
+        Route::post('/', [NotificationController::class, 'adminCreateNotification']);
+        Route::put('/{id}', [NotificationController::class, 'adminUpdateNotification']);
+        Route::delete('/{id}', [NotificationController::class, 'adminDeleteNotification']);
+    });
+});
