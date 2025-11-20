@@ -57,7 +57,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
         Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-        Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware('auth:api')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::post('/logout-all', [AuthController::class, 'logoutAll']);
             Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
@@ -67,7 +67,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware('auth:api')->group(function () {
 
         // Profile management
         Route::prefix('profile')->group(function () {
@@ -106,37 +106,44 @@ Route::prefix('v1')->group(function () {
         });
 
         // Admin routes
-        Route::middleware('role:admin')->group(function () {
+        // Route::middleware('role:admin')->group(function () {
 
-            // Sports management
-            Route::apiResource('sports', SportController::class)->except(['index', 'show']);
-            Route::patch('/sports/{sport}/toggle-status', [SportController::class, 'toggleStatus']);
+        //     // Sports management
+        //     Route::apiResource('sports', SportController::class)->except(['index', 'show']);
+        //     Route::patch('/sports/{sport}/toggle-status', [SportController::class, 'toggleStatus']);
 
-            // Venues approval
-            Route::patch('/venues/{venue}/approve', [VenueController::class, 'approve']);
-            Route::patch('/venues/{venue}/reject', [VenueController::class, 'reject']);
+        //     // Venues approval
+        //     Route::patch('/venues/{venue}/approve', [VenueController::class, 'approve']);
+        //     Route::patch('/venues/{venue}/reject', [VenueController::class, 'reject']);
 
-            // Notification management (Admin only)
-            Route::prefix('notifications')->group(function () {
-                Route::post('/send-to-users', [NotificationController::class, 'sendToUsers']);
-                Route::post('/send-to-all', [NotificationController::class, 'sendToAllUsers']);
-                Route::post('/send-to-role', [NotificationController::class, 'sendToRole']);
-                Route::get('/list', [NotificationController::class, 'getNotifications']);
-                Route::get('/stats', [NotificationController::class, 'getStats']);
-                Route::get('/{id}', [NotificationController::class, 'getNotification']);
-            });
-        });
+        //     // Notification management (Admin only)
+        //     Route::prefix('notifications')->group(function () {
+        //         Route::post('/send-to-users', [NotificationController::class, 'sendToUsers']);
+        //         Route::post('/send-to-all', [NotificationController::class, 'sendToAllUsers']);
+        //         Route::post('/send-to-role', [NotificationController::class, 'sendToRole']);
+        //         Route::get('/list', [NotificationController::class, 'getNotifications']);
+        //         Route::get('/stats', [NotificationController::class, 'getStats']);
+        //         Route::get('/{id}', [NotificationController::class, 'getNotification']);
+        //     });
+        // });
     });
 });
 
-// Legacy route for backward compatibility
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+// // Legacy route for backward compatibility
+// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+//     return $request->user();
+// });
 
 
 // API for admin panel (separate from main API)
-Route::group(['prefix' => 'admin', 'middleware' => ['auth:sanctum', 'role:admin||owner']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['set.locale']], function () {
+    Route::post('/login', [AuthController::class, 'adminLogin']);
+    Route::post('forgot-password', [AuthController::class, 'adminForgotPassword']);
+    Route::post('reset-password', [AuthController::class, 'adminResetPassword']);
+    Route::post('/change-password', [AuthController::class, 'adminChangePassword']);
+    Route::post('/refresh-token', [AuthController::class, 'adminRefreshToken']);
+});
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:api', 'role:admin|owner']], function () {
     Route::group(['prefix' => 'users', 'middleware' => ['role:admin']], function () {
         Route::get('/', [AuthController::class, 'adminGetAllUsers']);
         Route::post('/', [AuthController::class, 'adminCreateUser']);
@@ -157,5 +164,11 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:sanctum', 'role:admin|
         Route::post('/', [NotificationController::class, 'adminCreateNotification']);
         Route::put('/{id}', [NotificationController::class, 'adminUpdateNotification']);
         Route::delete('/{id}', [NotificationController::class, 'adminDeleteNotification']);
+        Route::post('/send-to-users', [NotificationController::class, 'sendToUsers']);
+        Route::post('/send-to-all', [NotificationController::class, 'sendToAllUsers']);
+        Route::post('/send-to-role', [NotificationController::class, 'sendToRole']);
+        // Route::get('/list', [NotificationController::class, 'getNotifications']);
+        Route::get('/stats', [NotificationController::class, 'getStats']);
+        // Route::get('/{id}', [NotificationController::class, 'getNotification']);
     });
 });

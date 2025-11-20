@@ -1,0 +1,30 @@
+<?php
+
+return [
+    'registration_successful' => 'Đăng ký thành công',
+    'registration_failed' => 'Đăng ký thất bại',
+    'login_successful' => 'Đăng nhập thành công',
+    'invalid_credentials' => 'Thông tin đăng nhập không hợp lệ',
+    'logout_successful' => 'Đăng xuất thành công',
+    'logout_all_successful' => 'Đăng xuất khỏi tất cả thiết bị thành công',
+    'logout_failed' => 'Đăng xuất thất bại',
+    'password_reset_link_sent' => 'Đã gửi liên kết đặt lại mật khẩu tới email của bạn',
+    'password_reset_link_failed' => 'Gửi liên kết đặt lại mật khẩu thất bại',
+    'password_reset_success' => 'Đặt lại mật khẩu thành công',
+    'password_reset_failed' => 'Đặt lại mật khẩu thất bại',
+    'password_reset_invalid' => 'Đặt lại mật khẩu thất bại. Vui lòng kiểm tra lại token và email của bạn.',
+    'token_refreshed' => 'Làm mới token thành công',
+    'token_refresh_failed' => 'Làm mới token thất bại',
+    'current_password_incorrect' => 'Mật khẩu hiện tại không chính xác',
+    'password_change_success' => 'Đổi mật khẩu thành công',
+    'password_change_failed' => 'Đổi mật khẩu thất bại',
+    'validation_failed' => 'Xác thực thất bại',
+    'unauthorized' => 'Không được phép',
+    'forbidden' => 'Bạn không có quyền thực hiện hành động này',
+    'email_required' => 'Email là bắt buộc',
+    'email_string' => 'Email phải là chuỗi',
+    'password_required' => 'Mật khẩu là bắt buộc',
+    'password_string' => 'Mật khẩu phải là chuỗi',
+    'password_min' => 'Mật khẩu phải có ít nhất :min ký tự',
+];
+
