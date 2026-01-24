@@ -50,11 +50,13 @@ class NotificationController extends Controller
         }
 
         try {
+            $deviceType = $request->device_type ?? 'web';
+            $deviceName = $request->device_name ?? $request->userAgent();
             $user = Auth::user();
             $deviceToken = $user->addDeviceToken(
                 $request->token,
-                $request->device_type,
-                $request->device_name
+                $deviceType,
+                $deviceName
             );
 
             return response()->json([
