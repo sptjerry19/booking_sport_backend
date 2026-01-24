@@ -13,6 +13,13 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+
+        // Generate time slots vào 00:00 hàng tháng
+        $schedule->command('timeslots:generate')
+            ->monthly()
+            ->at('00:00')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**
@@ -20,7 +27,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands(): void
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }

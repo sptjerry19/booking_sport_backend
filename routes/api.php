@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\ProfileController;
+use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\CourtController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SportController;
@@ -64,10 +65,40 @@ Route::prefix('v1')->group(function () {
             Route::post('/change-password', [AuthController::class, 'changePassword']);
             Route::get('/me', [AuthController::class, 'me']);
         });
+
     });
 
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
+
+        // save fcm token
+        Route::post('/save-fcm-token', [NotificationController::class, 'registerToken']);
+
+        // Booking routes
+        Route::prefix('bookings')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [BookingController::class, 'index']);
+            Route::post('/', [BookingController::class, 'store']);
+            Route::get('/{booking}', [BookingController::class, 'show']);
+            Route::put('/{booking}', [BookingController::class, 'update']);
+            Route::delete('/{booking}', [BookingController::class, 'destroy']);
+            Route::post('/{booking}/cancel', [BookingController::class, 'cancel']);
+            Route::post('/{booking}/confirm', [BookingController::class, 'confirm']);
+            Route::post('/{booking}/complete', [BookingController::class, 'complete']);
+            Route::post('/{booking}/refund', [BookingController::class, 'refund']);
+            Route::post('/{booking}/remind', [BookingController::class, 'remind']);
+            
+            // Chat Routes (Nested under bookings or separate?)
+            // Spec says: /api/chat-rooms/{id}/messages
+            // But we need to get chat room ID from booking or allow direct access if we have the ID.
+            // Let's add specific chat routes outside or here.
+        });
+
+        // Chat Room Routes
+        Route::prefix('chat-rooms')->group(function () {
+             Route::get('/{chatRoom}/messages', [App\Http\Controllers\Api\ChatController::class, 'getMessages']);
+             Route::post('/{chatRoom}/messages', [App\Http\Controllers\Api\ChatController::class, 'sendMessage']);
+             Route::post('/{chatRoom}/confirm-booking', [App\Http\Controllers\Api\ChatController::class, 'confirmBooking']);
+        });
 
         // Profile management
         Route::prefix('profile')->group(function () {
@@ -127,7 +158,15 @@ Route::prefix('v1')->group(function () {
             });
         });
     });
+
+    // Public Chat Routes (Outside auth middleware)
+    Route::prefix('public/chat')->group(function () {
+        Route::get('/check/{uuid}', [App\Http\Controllers\Api\PublicChatController::class, 'check']);
+        Route::get('/{uuid}/messages', [App\Http\Controllers\Api\PublicChatController::class, 'getMessages']);
+        Route::post('/{uuid}/messages', [App\Http\Controllers\Api\PublicChatController::class, 'sendMessage']);
+    });
 });
+
 
 // Legacy route for backward compatibility
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
