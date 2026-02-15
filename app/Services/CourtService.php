@@ -204,7 +204,7 @@ class CourtService
     {
         $timeSlots = $court->timeSlots()
             ->where('date', $date)
-            ->where('is_available', true)
+            // ->where('status', 'available')
             ->orderBy('start_time')
             ->get();
 
@@ -214,7 +214,7 @@ class CourtService
                 'start_time' => $slot->start_time,
                 'end_time' => $slot->end_time,
                 'price' => $slot->price,
-                'is_available' => $slot->is_available,
+                'is_available' => $slot->status,
             ];
         })->toArray();
     }

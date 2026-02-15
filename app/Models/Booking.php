@@ -50,6 +50,12 @@ class Booking extends Model
                 $booking->booking_number = static::generateBookingNumber();
             }
         });
+
+        static::created(function ($booking) {
+            \App\Models\ChatRoom::create([
+                'booking_id' => $booking->id
+            ]);
+        });
     }
 
     public function user(): BelongsTo
@@ -60,6 +66,11 @@ class Booking extends Model
     public function court(): BelongsTo
     {
         return $this->belongsTo(Court::class);
+    }
+
+    public function chatRoom()
+    {
+        return $this->hasOne(ChatRoom::class);
     }
 
     public function scopeActive($query)
