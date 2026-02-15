@@ -28,3 +28,4 @@ return [
     'password_min' => 'Mật khẩu phải có ít nhất :min ký tự',
 ];
 
+

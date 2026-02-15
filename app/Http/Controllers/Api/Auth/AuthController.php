@@ -9,11 +9,13 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
+use Spatie\Permission\Models\Role;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -43,6 +45,7 @@ class AuthController extends Controller
         }
 
         try {
+            DB::beginTransaction();
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -56,6 +59,8 @@ class AuthController extends Controller
             // Assign default role
             $user->assignRole('user');
 
+            DB::commit();
+
             // Generate JWT token
             $token = JWTAuth::fromUser($user);
 
@@ -66,6 +71,7 @@ class AuthController extends Controller
                 Response::HTTP_CREATED
             );
         } catch (\Throwable $e) {
+            DB::rollBack();
             return ApiResponse::error(
                 __('auth.registration_failed'),
                 Response::HTTP_INTERNAL_SERVER_ERROR,
@@ -98,7 +104,7 @@ class AuthController extends Controller
         // Kiểm tra thông tin đăng nhập
         $credentials = $request->only('email', 'password');
         if (!$token = JWTAuth::attempt($credentials)) {
-            return ApiResponse::error(__('auth.invalid_credentials'), Response::HTTP_UNAUTHORIZED);
+            return ApiResponse::error(__('auth.invalid_credentials'), Response::HTTP_BAD_REQUEST);
         }
 
         /** @var User $user */

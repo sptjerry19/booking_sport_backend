@@ -5,3 +5,4 @@ return [
     'getAllDataFail' => 'Failed to fetch notifications',
 ];
 
+

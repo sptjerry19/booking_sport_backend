@@ -31,7 +31,7 @@ class ProfileController extends Controller
                     'level' => $user->level,
                     'preferred_sports' => $user->preferred_sports,
                     'preferred_position' => $user->preferred_position,
-                    'avatar' => $user->avatar ? Storage::url($user->avatar) : null,
+                    'avatar' => $user->avatar ? env('APP_URL') . Storage::url($user->avatar) : null,
                     'roles' => $user->getRoleNames(),
                     'permissions' => $user->getAllPermissions()->pluck('name'),
                     'email_verified_at' => $user->email_verified_at,

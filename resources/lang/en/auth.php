@@ -27,3 +27,4 @@ return [
     'password_string' => 'Password must be a string',
     'password_min' => 'Password must be at least :min characters',
 ];
+
