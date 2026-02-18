@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use App\Http\Requests\Auth\ChangeEmailRequest;
+use App\Http\Requests\Auth\RevokeDeviceRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
+use App\Http\Requests\Auth\UploadAvatarRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules;
 use Intervention\Image\Facades\Image;
 
 class ProfileController extends Controller
@@ -31,7 +33,7 @@ class ProfileController extends Controller
                     'level' => $user->level,
                     'preferred_sports' => $user->preferred_sports,
                     'preferred_position' => $user->preferred_position,
-                    'avatar' => $user->avatar ? Storage::url($user->avatar) : null,
+                    'avatar' => $user->avatar ? env('APP_URL') . Storage::url($user->avatar) : null,
                     'roles' => $user->getRoleNames(),
                     'permissions' => $user->getAllPermissions()->pluck('name'),
                     'email_verified_at' => $user->email_verified_at,
@@ -49,26 +51,9 @@ class ProfileController extends Controller
     /**
      * Cập nhật profile
      */
-    public function update(Request $request): JsonResponse
+    public function update(UpdateProfileRequest $request): JsonResponse
     {
         $user = $request->user();
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20|unique:users,phone,' . $user->id,
-            'level' => 'nullable|string|in:beginner,intermediate,advanced',
-            'preferred_sports' => 'nullable|array',
-            'preferred_sports.*' => 'integer|exists:sports,id',
-            'preferred_position' => 'nullable|array',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $updateData = array_filter([
@@ -113,19 +98,8 @@ class ProfileController extends Controller
     /**
      * Upload avatar
      */
-    public function uploadAvatar(Request $request): JsonResponse
+    public function uploadAvatar(UploadAvatarRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB max
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $user = $request->user();
@@ -200,20 +174,8 @@ class ProfileController extends Controller
     /**
      * Thay đổi email (với verification)
      */
-    public function changeEmail(Request $request): JsonResponse
+    public function changeEmail(ChangeEmailRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'new_email' => 'required|email|max:255|unique:users,email',
-            'password' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         $user = $request->user();
 
@@ -293,18 +255,8 @@ class ProfileController extends Controller
     /**
      * Revoke một device token cụ thể
      */
-    public function revokeDevice(Request $request, int $tokenId): JsonResponse
+    public function revokeDevice(RevokeDeviceRequest $request, int $tokenId): JsonResponse
     {
-        $validator = Validator::make(['token_id' => $tokenId], [
-            'token_id' => 'required|integer',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid token ID',
-            ], 422);
-        }
 
         try {
             $user = $request->user();

@@ -3,8 +3,9 @@
 namespace App\Http\Requests\Auth;
 
 use App\Http\Requests\BaseRequest;
+use Illuminate\Validation\Rules;
 
-class LoginRequest extends BaseRequest
+class ResetPasswordRequest extends BaseRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -14,10 +15,9 @@ class LoginRequest extends BaseRequest
     public function rules(): array
     {
         return [
+            'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|string|min:6',
-            'remember' => 'nullable|boolean',
-            'device_name' => 'nullable|string|max:255',
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ];
     }
 }

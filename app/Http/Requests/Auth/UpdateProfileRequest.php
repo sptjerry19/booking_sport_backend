@@ -3,9 +3,8 @@
 namespace App\Http\Requests\Auth;
 
 use App\Http\Requests\BaseRequest;
-use Illuminate\Validation\Rules;
 
-class RegisterRequest extends BaseRequest
+class UpdateProfileRequest extends BaseRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -14,11 +13,12 @@ class RegisterRequest extends BaseRequest
      */
     public function rules(): array
     {
+        $user = $this->user();
+        $userId = $user ? $user->id : null;
+
         return [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'phone' => 'nullable|string|max:20|unique:users',
+            'name' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20|unique:users,phone,' . $userId,
             'level' => 'nullable|string|in:beginner,intermediate,advanced',
             'preferred_sports' => 'nullable|array',
             'preferred_sports.*' => 'integer|exists:sports,id',

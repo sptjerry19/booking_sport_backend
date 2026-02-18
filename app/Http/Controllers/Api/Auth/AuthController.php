@@ -3,43 +3,38 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\AdminLoginRequest;
+use App\Http\Requests\Auth\ChangePasswordRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
+use App\Http\Responses\ApiResponse;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
+use Spatie\Permission\Models\Role;
+use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
     /**
      * Đăng ký tài khoản mới
      */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'phone' => 'nullable|string|max:20|unique:users',
-            'level' => 'nullable|string|in:beginner,intermediate,advanced',
-            'preferred_sports' => 'nullable|array',
-            'preferred_sports.*' => 'integer|exists:sports,id',
-            'preferred_position' => 'nullable|array',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
+            DB::beginTransaction();
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -53,92 +48,44 @@ class AuthController extends Controller
             // Assign default role
             $user->assignRole('user');
 
-            // Tạo token
-            $token = $user->createToken('auth-token')->plainTextToken;
+            DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Registration successful',
-                'data' => [
-                    'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'phone' => $user->phone,
-                        'level' => $user->level,
-                        'preferred_sports' => $user->preferred_sports,
-                        'preferred_position' => $user->preferred_position,
-                        'avatar' => $user->avatar,
-                        'roles' => $user->getRoleNames(),
-                    ],
-                    'token' => $token,
-                    'token_type' => 'Bearer',
-                ],
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Registration failed',
-                'error' => $e->getMessage(),
-            ], 500);
+            // Generate JWT token
+            $token = JWTAuth::fromUser($user);
+
+            return ApiResponse::userResource(
+                $user,
+                $token,
+                __('auth.registration_successful'),
+                Response::HTTP_CREATED
+            );
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return ApiResponse::error(
+                __('auth.registration_failed'),
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                null,
+                ['error' => $e->getMessage()]
+            );
         }
     }
 
     /**
      * Đăng nhập
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-            'remember' => 'nullable|boolean',
-            'device_name' => 'nullable|string|max:255',
-        ]);
-
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         // Kiểm tra thông tin đăng nhập
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid credentials',
-            ], 401);
+        $credentials = $request->only('email', 'password');
+        if (!$token = JWTAuth::attempt($credentials)) {
+            return ApiResponse::error(__('auth.invalid_credentials'), Response::HTTP_BAD_REQUEST);
         }
 
-        $user = Auth::user();
+        /** @var User $user */
+        $user = JWTAuth::user();
 
-        // Tạo token với tên device
-        $deviceName = $request->device_name ?? 'Unknown Device';
-        $token = $user->createToken($deviceName)->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful',
-            'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'level' => $user->level,
-                    'preferred_sports' => $user->preferred_sports,
-                    'preferred_position' => $user->preferred_position,
-                    'avatar' => $user->avatar,
-                    'roles' => $user->getRoleNames(),
-                    'permissions' => $user->getAllPermissions()->pluck('name'),
-                ],
-                'token' => $token,
-                'token_type' => 'Bearer',
-            ],
-        ]);
+        return ApiResponse::userResource($user, $token, __('auth.login_successful'));
     }
 
     /**
@@ -147,19 +94,16 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         try {
-            // Xóa token hiện tại
-            $request->user()->currentAccessToken()->delete();
+            JWTAuth::parseToken()->invalidate();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Logout successful',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Logout failed',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::success(null, __('auth.logout_successful'));
+        } catch (JWTException $e) {
+            return ApiResponse::error(
+                __('auth.logout_failed'),
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                null,
+                ['error' => $e->getMessage()]
+            );
         }
     }
 
@@ -169,19 +113,16 @@ class AuthController extends Controller
     public function logoutAll(Request $request): JsonResponse
     {
         try {
-            // Xóa tất cả tokens của user
-            $request->user()->tokens()->delete();
+            JWTAuth::parseToken()->invalidate(true);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Logged out from all devices successfully',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Logout failed',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::success(null, __('auth.logout_all_successful'));
+        } catch (JWTException $e) {
+            return ApiResponse::error(
+                __('auth.logout_failed'),
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                null,
+                ['error' => $e->getMessage()]
+            );
         }
     }
 
@@ -192,44 +133,14 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'level' => $user->level,
-                    'preferred_sports' => $user->preferred_sports,
-                    'preferred_position' => $user->preferred_position,
-                    'avatar' => $user->avatar,
-                    'roles' => $user->getRoleNames(),
-                    'permissions' => $user->getAllPermissions()->pluck('name'),
-                    'email_verified_at' => $user->email_verified_at,
-                    'created_at' => $user->created_at,
-                    'updated_at' => $user->updated_at,
-                ],
-            ],
-        ]);
+        return ApiResponse::userResource($user);
     }
 
     /**
      * Quên mật khẩu - Gửi link reset
      */
-    public function forgotPassword(Request $request): JsonResponse
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $status = Password::sendResetLink(
@@ -237,43 +148,25 @@ class AuthController extends Controller
             );
 
             if ($status === Password::RESET_LINK_SENT) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Password reset link sent to your email',
-                ]);
+                return ApiResponse::success(null, __('auth.password_reset_link_sent'));
             }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send password reset link',
-            ], 500);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send password reset link',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::error(__('auth.password_reset_link_failed'), Response::HTTP_INTERNAL_SERVER_ERROR);
+        } catch (\Throwable $e) {
+            return ApiResponse::error(
+                __('auth.password_reset_link_failed'),
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                null,
+                ['error' => $e->getMessage()]
+            );
         }
     }
 
     /**
      * Reset mật khẩu
      */
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $status = Password::reset(
@@ -283,29 +176,24 @@ class AuthController extends Controller
                         'password' => Hash::make($password),
                         'remember_token' => Str::random(60),
                     ])->save();
-
-                    // Revoke all existing tokens
-                    $user->tokens()->delete();
                 }
             );
 
             if ($status === Password::PASSWORD_RESET) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Password has been reset successfully',
-                ]);
+                return ApiResponse::success(null, __('auth.password_reset_success'));
             }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to reset password. Please check your token and email.',
-            ], 400);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to reset password',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::error(
+                __('auth.password_reset_invalid'),
+                Response::HTTP_BAD_REQUEST
+            );
+        } catch (\Throwable $e) {
+            return ApiResponse::error(
+                __('auth.password_reset_failed'),
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                null,
+                ['error' => $e->getMessage()]
+            );
         }
     }
 
@@ -315,58 +203,32 @@ class AuthController extends Controller
     public function refreshToken(Request $request): JsonResponse
     {
         try {
-            $user = $request->user();
+            $newToken = JWTAuth::parseToken()->refresh();
+            /** @var User $user */
+            $user = JWTAuth::setToken($newToken)->toUser();
 
-            // Xóa token hiện tại
-            $request->user()->currentAccessToken()->delete();
-
-            // Tạo token mới
-            $deviceName = $request->header('User-Agent') ?? 'Unknown Device';
-            $token = $user->createToken($deviceName)->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Token refreshed successfully',
-                'data' => [
-                    'token' => $token,
-                    'token_type' => 'Bearer',
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to refresh token',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::userResource($user, $newToken, __('auth.token_refreshed'));
+        } catch (JWTException $e) {
+            return ApiResponse::error(
+                __('auth.token_refresh_failed'),
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                null,
+                ['error' => $e->getMessage()]
+            );
         }
     }
 
     /**
      * Thay đổi mật khẩu
      */
-    public function changePassword(Request $request): JsonResponse
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'current_password' => 'required',
-            'new_password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         $user = $request->user();
 
         // Kiểm tra mật khẩu hiện tại
         if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Current password is incorrect',
-            ], 400);
+            return ApiResponse::error(__('auth.current_password_incorrect'), Response::HTTP_BAD_REQUEST);
         }
 
         try {
@@ -375,16 +237,36 @@ class AuthController extends Controller
                 'password' => Hash::make($request->new_password),
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Password changed successfully',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to change password',
-                'error' => $e->getMessage(),
-            ], 500);
+            return ApiResponse::success(null, __('auth.password_change_success'));
+        } catch (\Throwable $e) {
+            return ApiResponse::error(
+                __('auth.password_change_failed'),
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                null,
+                ['error' => $e->getMessage()]
+            );
         }
+    }
+
+
+    // Các phương thức quản trị viên tương tự có thể được thêm vào đây
+    public function adminLogin(AdminLoginRequest $request): JsonResponse
+    {
+        $credentials = $request->only('email', 'password');
+
+        if (!$token = JWTAuth::attempt($credentials)) {
+            return ApiResponse::error(__('auth.invalid_credentials'), Response::HTTP_UNAUTHORIZED);
+        }
+
+        /** @var User $user */
+        $user = JWTAuth::user();
+
+        if (!$user->hasRole('admin')) {
+            JWTAuth::setToken($token)->invalidate(true);
+
+            return ApiResponse::error(__('auth.forbidden'), Response::HTTP_FORBIDDEN);
+        }
+
+        return ApiResponse::userResource($user, $token, __('auth.login_successful'));
     }
 }
