@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Requests\Notification;
 
 use App\Http\Requests\BaseRequest;
 
-class LoginRequest extends BaseRequest
+class SendTestNotificationRequest extends BaseRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -14,10 +14,10 @@ class LoginRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-            'remember' => 'nullable|boolean',
-            'device_name' => 'nullable|string|max:255',
+            'title' => 'required|string|max:255',
+            'body' => 'required|string',
+            'data' => 'nullable|array',
+            'use_topic' => 'nullable|boolean',
         ];
     }
 }

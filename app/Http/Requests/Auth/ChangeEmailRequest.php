@@ -4,7 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use App\Http\Requests\BaseRequest;
 
-class LoginRequest extends BaseRequest
+class ChangeEmailRequest extends BaseRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -14,10 +14,8 @@ class LoginRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-            'remember' => 'nullable|boolean',
-            'device_name' => 'nullable|string|max:255',
+            'new_email' => 'required|email|max:255|unique:users,email',
+            'password' => 'required|string',
         ];
     }
 }

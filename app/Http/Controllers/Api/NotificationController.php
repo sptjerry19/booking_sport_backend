@@ -3,6 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Notification\BroadcastViaTopicRequest;
+use App\Http\Requests\Notification\RegisterDeviceTokenRequest;
+use App\Http\Requests\Notification\RemoveDeviceTokenRequest;
+use App\Http\Requests\Notification\SendNotificationToAllUsersRequest;
+use App\Http\Requests\Notification\SendNotificationToRoleRequest;
+use App\Http\Requests\Notification\SendNotificationToUsersRequest;
+use App\Http\Requests\Notification\SendTestNotificationRequest;
+use App\Http\Requests\Notification\SendToRoleViaTopicRequest;
 use App\Http\Requests\Notification\StoreNotificationRequest;
 use App\Http\Requests\Notification\UpdateNotificationRequest;
 use App\Http\Resources\NoticeResource;
@@ -17,7 +25,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class NotificationController extends Controller
 {
@@ -33,23 +40,12 @@ class NotificationController extends Controller
     /**
      * Đăng ký hoặc cập nhật device token
      */
-    public function registerToken(Request $request): JsonResponse
+    public function registerToken(RegisterDeviceTokenRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required|string',
-            'device_type' => 'nullable|string|in:android,ios,web',
-            'device_name' => 'nullable|string|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
+        // dd(11111111111);
 
         try {
+            dd(1414141);
             $deviceType = $request->device_type ?? 'web';
             $deviceName = $request->device_name ?? $request->userAgent();
             $user = Auth::user();
@@ -76,19 +72,8 @@ class NotificationController extends Controller
     /**
      * Xóa device token
      */
-    public function removeToken(Request $request): JsonResponse
+    public function removeToken(RemoveDeviceTokenRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $user = Auth::user();
@@ -110,24 +95,8 @@ class NotificationController extends Controller
     /**
      * Gửi notification đến users cụ thể
      */
-    public function sendToUsers(Request $request): JsonResponse
+    public function sendToUsers(SendNotificationToUsersRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'user_ids' => 'required|array',
-            'user_ids.*' => 'integer|exists:users,id',
-            'title' => 'required|string|max:255',
-            'body' => 'required|string',
-            'data' => 'nullable|array',
-            'type' => 'nullable|string|in:general,booking,reminder,promo',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $notification = $this->fcmService->sendBatchNotification(
@@ -155,22 +124,8 @@ class NotificationController extends Controller
     /**
      * Gửi notification đến tất cả users
      */
-    public function sendToAllUsers(Request $request): JsonResponse
+    public function sendToAllUsers(SendNotificationToAllUsersRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'body' => 'required|string',
-            'data' => 'nullable|array',
-            'type' => 'nullable|string|in:general,booking,reminder,promo',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $notification = $this->fcmService->sendToAllUsers(
@@ -197,23 +152,8 @@ class NotificationController extends Controller
     /**
      * Gửi notification đến users theo role
      */
-    public function sendToRole(Request $request): JsonResponse
+    public function sendToRole(SendNotificationToRoleRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'role' => 'required|string',
-            'title' => 'required|string|max:255',
-            'body' => 'required|string',
-            'data' => 'nullable|array',
-            'type' => 'nullable|string|in:general,booking,reminder,promo',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $notification = $this->fcmService->sendToUsersWithRole(
@@ -241,22 +181,8 @@ class NotificationController extends Controller
     /**
      * Gửi notification test đến user hiện tại
      */
-    public function sendTestNotification(Request $request): JsonResponse
+    public function sendTestNotification(SendTestNotificationRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'body' => 'required|string',
-            'data' => 'nullable|array',
-            'use_topic' => 'nullable|boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $user = Auth::user();
@@ -309,27 +235,8 @@ class NotificationController extends Controller
     /**
      * Gửi broadcast notification qua Topic (khuyến nghị)
      */
-    public function broadcastViaTopic(Request $request): JsonResponse
+    public function broadcastViaTopic(BroadcastViaTopicRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
-            'body' => 'required|string',
-            'data' => 'nullable|array',
-            'type' => 'nullable|string|in:' . implode(',', [
-                Notification::TYPE_GENERAL,
-                Notification::TYPE_PROMOTION,
-                Notification::TYPE_NEWS,
-                Notification::TYPE_SYSTEM,
-            ]),
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $notification = $this->fcmService->sendToAllUsersViaTopic(
@@ -358,28 +265,8 @@ class NotificationController extends Controller
     /**
      * Gửi notification tới role cụ thể qua Topic
      */
-    public function sendToRoleViaTopic(Request $request): JsonResponse
+    public function sendToRoleViaTopic(SendToRoleViaTopicRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'role' => 'required|string|exists:roles,name',
-            'title' => 'required|string|max:255',
-            'body' => 'required|string',
-            'data' => 'nullable|array',
-            'type' => 'nullable|string|in:' . implode(',', [
-                Notification::TYPE_GENERAL,
-                Notification::TYPE_PROMOTION,
-                Notification::TYPE_NEWS,
-                Notification::TYPE_SYSTEM,
-            ]),
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $notification = $this->fcmService->sendToUsersWithRoleViaTopic(

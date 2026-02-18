@@ -4,6 +4,12 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AdminLoginRequest;
+use App\Http\Requests\Auth\ChangePasswordRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Responses\ApiResponse;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -24,25 +30,8 @@ class AuthController extends Controller
     /**
      * Đăng ký tài khoản mới
      */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'phone' => 'nullable|string|max:20|unique:users',
-            'level' => 'nullable|string|in:beginner,intermediate,advanced',
-            'preferred_sports' => 'nullable|array',
-            'preferred_sports.*' => 'integer|exists:sports,id',
-            'preferred_position' => 'nullable|array',
-        ]);
-
-        if ($validator->fails()) {
-            return ApiResponse::validationError(
-                $validator->errors()->toArray(),
-                __('auth.validation_failed')
-            );
-        }
 
         try {
             DB::beginTransaction();
@@ -84,22 +73,8 @@ class AuthController extends Controller
     /**
      * Đăng nhập
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-            'remember' => 'nullable|boolean',
-            'device_name' => 'nullable|string|max:255',
-        ]);
-
-
-        if ($validator->fails()) {
-            return ApiResponse::validationError(
-                $validator->errors()->toArray(),
-                __('auth.validation_failed')
-            );
-        }
 
         // Kiểm tra thông tin đăng nhập
         $credentials = $request->only('email', 'password');
@@ -164,18 +139,8 @@ class AuthController extends Controller
     /**
      * Quên mật khẩu - Gửi link reset
      */
-    public function forgotPassword(Request $request): JsonResponse
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
-        ]);
-
-        if ($validator->fails()) {
-            return ApiResponse::validationError(
-                $validator->errors()->toArray(),
-                __('auth.validation_failed')
-            );
-        }
 
         try {
             $status = Password::sendResetLink(
@@ -200,20 +165,8 @@ class AuthController extends Controller
     /**
      * Reset mật khẩu
      */
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
-
-        if ($validator->fails()) {
-            return ApiResponse::validationError(
-                $validator->errors()->toArray(),
-                __('auth.validation_failed')
-            );
-        }
 
         try {
             $status = Password::reset(
@@ -268,19 +221,8 @@ class AuthController extends Controller
     /**
      * Thay đổi mật khẩu
      */
-    public function changePassword(Request $request): JsonResponse
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'current_password' => 'required',
-            'new_password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
-
-        if ($validator->fails()) {
-            return ApiResponse::validationError(
-                $validator->errors()->toArray(),
-                __('auth.validation_failed')
-            );
-        }
 
         $user = $request->user();
 
