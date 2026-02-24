@@ -21,7 +21,9 @@ class CourtResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'capacity' => $this->capacity,
+            'capacity' => $this->capacity,
             'hourly_rate' => $this->hourly_rate,
+            'price_per_hour' => $this->hourly_rate, // Alias for frontend compatibility
             'status' => $this->status,
             'sport' => new SportResource($this->whenLoaded('sport')),
             'venue' => new VenueResource($this->whenLoaded('venue')),

@@ -93,11 +93,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Relationship với Booking (placeholder)
+     * Relationship với Booking
      */
     public function bookings()
     {
-        // Placeholder - chưa có Booking model
-        return collect([]);
+        return $this->hasMany(Booking::class);
     }
 }

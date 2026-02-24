@@ -25,6 +25,7 @@ class UpdateBookingRequest extends FormRequest
             'end_time' => 'sometimes|date_format:H:i:s|after:start_time',
             'notes' => 'nullable|string|max:1000',
             'metadata' => 'nullable|array',
+            'payment_method' => 'sometimes|string|in:cash,transfer,vnpay,momo,zalopay',
         ];
     }
 
@@ -43,4 +44,3 @@ class UpdateBookingRequest extends FormRequest
         ];
     }
 }
-

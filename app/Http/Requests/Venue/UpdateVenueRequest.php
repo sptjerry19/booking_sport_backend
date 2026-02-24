@@ -11,7 +11,7 @@ class UpdateVenueRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user(); // Simplified authorization for now
+        return true; // Authorization is handled in Controller
     }
 
     /**
@@ -33,7 +33,19 @@ class UpdateVenueRequest extends FormRequest
             'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
             'opening_time' => 'sometimes|date_format:H:i',
             'closing_time' => 'sometimes|date_format:H:i|after:opening_time',
+            'closing_time' => 'sometimes|date_format:H:i|after:opening_time',
             'status' => 'sometimes|in:active,inactive,pending,suspended',
+            'bank_bin' => 'sometimes|string|max:10',
+            'bank_account_no' => 'sometimes|string|max:50',
+            'bank_account_name' => 'sometimes|string|max:100',
+            'courts' => 'nullable|array',
+            'courts.*.id' => 'nullable|integer',
+            'courts.*.name' => 'required_with:courts|string|max:255',
+            'courts.*.sport_id' => 'required_with:courts|integer|exists:sports,id',
+            'courts.*.price_per_hour' => 'required_with:courts|numeric|min:0',
+            'courts.*.is_active' => 'sometimes|boolean',
+            'courts_to_delete' => 'nullable|array',
+            'courts_to_delete.*' => 'integer|exists:courts,id',
         ];
     }
 

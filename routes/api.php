@@ -65,7 +65,6 @@ Route::prefix('v1')->group(function () {
             Route::post('/change-password', [AuthController::class, 'changePassword']);
             Route::get('/me', [AuthController::class, 'me']);
         });
-
     });
 
     // Protected routes
@@ -86,7 +85,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/{booking}/complete', [BookingController::class, 'complete']);
             Route::post('/{booking}/refund', [BookingController::class, 'refund']);
             Route::post('/{booking}/remind', [BookingController::class, 'remind']);
-            
+            Route::get('/{booking}/qr-code', [BookingController::class, 'getQrCode']);
+            Route::post('/{booking}/confirm-payment', [BookingController::class, 'confirmPayment']);
             // Chat Routes (Nested under bookings or separate?)
             // Spec says: /api/chat-rooms/{id}/messages
             // But we need to get chat room ID from booking or allow direct access if we have the ID.
@@ -95,9 +95,9 @@ Route::prefix('v1')->group(function () {
 
         // Chat Room Routes
         Route::prefix('chat-rooms')->group(function () {
-             Route::get('/{chatRoom}/messages', [App\Http\Controllers\Api\ChatController::class, 'getMessages']);
-             Route::post('/{chatRoom}/messages', [App\Http\Controllers\Api\ChatController::class, 'sendMessage']);
-             Route::post('/{chatRoom}/confirm-booking', [App\Http\Controllers\Api\ChatController::class, 'confirmBooking']);
+            Route::get('/{chatRoom}/messages', [App\Http\Controllers\Api\ChatController::class, 'getMessages']);
+            Route::post('/{chatRoom}/messages', [App\Http\Controllers\Api\ChatController::class, 'sendMessage']);
+            Route::post('/{chatRoom}/confirm-booking', [App\Http\Controllers\Api\ChatController::class, 'confirmBooking']);
         });
 
         // Profile management

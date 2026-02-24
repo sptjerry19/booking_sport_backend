@@ -40,7 +40,10 @@ class ProfileController extends Controller
                 ],
                 'stats' => [
                     'total_bookings' => $user->bookings()->count() ?? 0,
+                    'completed_bookings' => $user->bookings()->where('status', 'confirmed')->count() ?? 0,
                     'active_devices' => $user->activeDeviceTokens()->count(),
+                    'pending_payment_bookings' => $user->bookings()->where('payment_status', 'pending')->count() ?? 0,
+                    'created_at' => $user->created_at,
                 ],
             ],
         ]);

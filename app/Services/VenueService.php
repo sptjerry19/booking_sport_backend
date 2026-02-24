@@ -144,6 +144,27 @@ class VenueService
 
             $venue->update($data);
 
+            // Handle courts update/create
+            if (isset($data['courts']) && is_array($data['courts'])) {
+                foreach ($data['courts'] as $courtData) {
+                    if (isset($courtData['id'])) {
+                        // Update existing court
+                        $court = $venue->courts()->find($courtData['id']);
+                        if ($court) {
+                            $court->update($courtData);
+                        }
+                    } else {
+                        // Create new court
+                        $venue->courts()->create($courtData);
+                    }
+                }
+            }
+
+            // Handle courts deletion
+            if (isset($data['courts_to_delete']) && is_array($data['courts_to_delete'])) {
+                $venue->courts()->whereIn('id', $data['courts_to_delete'])->delete();
+            }
+
             // Log activity
             ActivityHelper::activity()
                 ->performedOn($venue)

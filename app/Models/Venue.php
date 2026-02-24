@@ -27,6 +27,9 @@ class Venue extends Model
         'opening_time',
         'closing_time',
         'status',
+        'bank_bin',
+        'bank_account_no',
+        'bank_account_name',
     ];
 
     protected $casts = [

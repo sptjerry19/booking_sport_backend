@@ -336,4 +336,98 @@ class BookingController extends Controller
             ], 400);
         }
     }
+    /**
+     * Get QR Code for booking payment
+     */
+    public function getQrCode(Booking $booking): JsonResponse
+    {
+        try {
+            // Check authorization
+            $user = auth()->user();
+            if (!$this->isAdminOrOwner($user) && $booking->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không có quyền truy cập.',
+                ], 403);
+            }
+
+            $booking->load(['court.venue']);
+            $venue = $booking->court->venue;
+
+            if (!$venue->bank_bin || !$venue->bank_account_no) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sân chưa cấu hình thông tin ngân hàng.',
+                ], 400);
+            }
+
+            // Generate VietQR URL
+            // Format: https://img.vietqr.io/image/<BANK_BIN>-<ACCOUNT_NO>-<TEMPLATE>.png?amount=<AMOUNT>&addInfo=<CONTENT>&accountName=<NAME>
+            $bankBin = $venue->bank_bin;
+            $accountNo = $venue->bank_account_no;
+            $template = 'compact'; // or 'qr_only', 'print'
+            $amount = (int) $booking->final_amount;
+            $content = "TT " . $booking->booking_number;
+            $accountName = urlencode($venue->bank_account_name ?? '');
+
+            $qrUrl = "https://img.vietqr.io/image/{$bankBin}-{$accountNo}-{$template}.png?amount={$amount}&addInfo={$content}&accountName={$accountName}";
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'qr_url' => $qrUrl,
+                    'bank_info' => [
+                        'bank_bin' => $venue->bank_bin,
+                        'bank_account_no' => $venue->bank_account_no,
+                        'bank_account_name' => $venue->bank_account_name,
+                        'amount' => $amount,
+                        'content' => $content,
+                    ]
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Confirm Transfer Payment (User action)
+     */
+    public function confirmPayment(Booking $booking): JsonResponse
+    {
+        try {
+            // Check authorization
+            $user = auth()->user();
+            if (!$this->isAdminOrOwner($user) && $booking->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không có quyền truy cập.',
+                ], 403);
+            }
+
+            // Update payment status to processing/paid?
+            // Usually user claims they paid, so we might set to 'pending_confirmation' or just 'paid' if we trust them (or owner verifies later).
+            // For now, let's just add a note or log. The requirement says:
+            // "Khi thanh toán chuyển khoàn thành công -> update trạng thái thanh toán -> nhưng vẫn cần chủ sân xác nhận trạng thái đặt sân"
+            // Since we don't have real callback, we can let USER mark as "Paid", but status might stay "pending" or new status "paid".
+            // Let's assume we update payment_status to 'paid' but status needs owner.
+
+            $booking->payment_status = 'paid';
+            $booking->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã xác nhận thanh toán. Vui lòng chờ chủ sân xác nhận.',
+                'data' => new BookingResource($booking),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
 }

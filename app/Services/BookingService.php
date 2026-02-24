@@ -111,6 +111,7 @@ class BookingService
                 'final_amount' => $price - ($data['discount_amount'] ?? 0),
                 'status' => 'pending',
                 'payment_status' => 'pending',
+                'payment_method' => $data['payment_method'] ?? 'cash', // Default to cash if not provided
                 'notes' => $data['notes'] ?? null,
                 'metadata' => $data['metadata'] ?? null,
             ]);
