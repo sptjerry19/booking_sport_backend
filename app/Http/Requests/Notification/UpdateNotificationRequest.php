@@ -2,17 +2,11 @@
 
 namespace App\Http\Requests\Notification;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseRequest;
 
-class UpdateNotificationRequest extends FormRequest
+class UpdateNotificationRequest extends BaseRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return false;
-    }
+    // authorize() handled by BaseRequest (returns true)
 
     /**
      * Get the validation rules that apply to the request.

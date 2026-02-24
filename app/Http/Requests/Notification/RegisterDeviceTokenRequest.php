@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Requests\Notification;
 
 use App\Http\Requests\BaseRequest;
 
-class LoginRequest extends BaseRequest
+class RegisterDeviceTokenRequest extends BaseRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -14,9 +14,8 @@ class LoginRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-            'remember' => 'nullable|boolean',
+            'token' => 'required|string',
+            'device_type' => 'nullable|string|in:android,ios,web',
             'device_name' => 'nullable|string|max:255',
         ];
     }

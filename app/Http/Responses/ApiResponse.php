@@ -2,6 +2,7 @@
 
 namespace App\Http\Responses;
 
+use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
@@ -12,10 +13,12 @@ class ApiResponse
      */
     public static function success(
         $data = null,
-        string $message = 'Success',
+        string $message = null,
         int $code = Response::HTTP_OK,
         array $meta = []
     ): JsonResponse {
+        $message ??= __('messages.success');
+
         $response = [
             'success' => true,
             'message' => $message,
@@ -30,14 +33,38 @@ class ApiResponse
     }
 
     /**
+     * Return a user resource response
+     */
+    public static function userResource(
+        $user,
+        ?string $token = null,
+        string $message = null,
+        int $code = Response::HTTP_OK,
+        array $additional = []
+    ): JsonResponse {
+        $data = array_merge([
+            'user' => new UserResource($user),
+        ], $additional);
+
+        if (!empty($token)) {
+            $data['token'] = $token;
+            $data['token_type'] = 'Bearer';
+        }
+
+        return self::success($data, $message ?? __('messages.success'), $code);
+    }
+
+    /**
      * Return an error response
      */
     public static function error(
-        string $message = 'Error occurred',
+        string $message = null,
         int $code = Response::HTTP_BAD_REQUEST,
         $errors = null,
         $data = null
     ): JsonResponse {
+        $message ??= __('messages.error');
+
         $response = [
             'success' => false,
             'message' => $message,
@@ -59,50 +86,50 @@ class ApiResponse
      */
     public static function validationError(
         array $errors,
-        string $message = 'Dữ liệu không hợp lệ',
+        string $message = null,
         int $code = Response::HTTP_UNPROCESSABLE_ENTITY
     ): JsonResponse {
-        return self::error($message, $code, $errors);
+        return self::error($message ?? __('messages.validation_failed'), $code, $errors);
     }
 
     /**
      * Return a not found response
      */
     public static function notFound(
-        string $message = 'Không tìm thấy dữ liệu',
+        string $message = null,
         int $code = Response::HTTP_NOT_FOUND
     ): JsonResponse {
-        return self::error($message, $code);
+        return self::error($message ?? __('messages.not_found'), $code);
     }
 
     /**
      * Return an unauthorized response
      */
     public static function unauthorized(
-        string $message = 'Không có quyền truy cập',
+        string $message = null,
         int $code = Response::HTTP_UNAUTHORIZED
     ): JsonResponse {
-        return self::error($message, $code);
+        return self::error($message ?? __('messages.unauthorized'), $code);
     }
 
     /**
      * Return a forbidden response
      */
     public static function forbidden(
-        string $message = 'Không có quyền thực hiện hành động này',
+        string $message = null,
         int $code = Response::HTTP_FORBIDDEN
     ): JsonResponse {
-        return self::error($message, $code);
+        return self::error($message ?? __('messages.forbidden'), $code);
     }
 
     /**
      * Return a server error response
      */
     public static function serverError(
-        string $message = 'Lỗi máy chủ',
+        string $message = null,
         int $code = Response::HTTP_INTERNAL_SERVER_ERROR
     ): JsonResponse {
-        return self::error($message, $code);
+        return self::error($message ?? __('messages.server_error'), $code);
     }
 
     /**
@@ -110,7 +137,7 @@ class ApiResponse
      */
     public static function paginated(
         $paginatedData,
-        string $message = 'Success',
+        string $message = null,
         int $code = Response::HTTP_OK
     ): JsonResponse {
         $meta = [
@@ -128,7 +155,7 @@ class ApiResponse
 
         return self::success(
             $paginatedData->items(),
-            $message,
+            $message ?? __('messages.success'),
             $code,
             $meta
         );
@@ -139,10 +166,10 @@ class ApiResponse
      */
     public static function created(
         $data = null,
-        string $message = 'Tạo thành công',
+        string $message = null,
         int $code = Response::HTTP_CREATED
     ): JsonResponse {
-        return self::success($data, $message, $code);
+        return self::success($data, $message ?? __('messages.created'), $code);
     }
 
     /**
@@ -150,20 +177,20 @@ class ApiResponse
      */
     public static function updated(
         $data = null,
-        string $message = 'Cập nhật thành công',
+        string $message = null,
         int $code = Response::HTTP_OK
     ): JsonResponse {
-        return self::success($data, $message, $code);
+        return self::success($data, $message ?? __('messages.updated'), $code);
     }
 
     /**
      * Return a deleted response
      */
     public static function deleted(
-        string $message = 'Xóa thành công',
+        string $message = null,
         int $code = Response::HTTP_OK
     ): JsonResponse {
-        return self::success(null, $message, $code);
+        return self::success(null, $message ?? __('messages.deleted'), $code);
     }
 
     /**
